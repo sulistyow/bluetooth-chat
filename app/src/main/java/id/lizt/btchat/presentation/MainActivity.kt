@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,8 +22,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import id.lizt.btchat.presentation.component.ChatScreen
 import id.lizt.btchat.presentation.component.DeviceScreen
 import id.lizt.btchat.ui.theme.BluetoothChatTheme
 
@@ -32,7 +35,6 @@ class MainActivity : ComponentActivity() {
     private val bluetoothManager by lazy {
         applicationContext.getSystemService(BluetoothManager::class.java)
     }
-
     private val bluetoothAdapter by lazy {
         bluetoothManager?.adapter
     }
@@ -42,12 +44,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        Log.e("MAIN_TEST", "SEMPAK")
 
         val enableBluetoothLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
-        ) {/**/
-        }
+        ) { /* Not needed */ }
 
         val permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
@@ -79,31 +80,54 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(key1 = state.errorMessage) {
                     state.errorMessage?.let { message ->
-                        Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            applicationContext,
+                            message,
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
 
                 LaunchedEffect(key1 = state.isConnected) {
                     if (state.isConnected) {
-                        Toast.makeText(applicationContext, "Your're connected", Toast.LENGTH_LONG)
-                            .show()
+                        Log.e("LAUNCHED SEMPAK", "CONNECTED")
+                        Toast.makeText(
+                            applicationContext,
+                            "You're connected!",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
 
                 Surface(
                     color = MaterialTheme.colors.background
                 ) {
+                    Log.d(
+                        "STATE",
+                        "isConnecting=${state.isConnecting}, isConnected=${state.isConnected}, messages=${state.messages.size}"
+                    )
                     when {
+                        state.isConnected -> {
+                            Log.e("SEMPAK", "Connected")
+                            ChatScreen(
+                                state = state,
+                                onDisconnect = viewModel::disconnectFromDevice,
+                                onSendMessage = viewModel::sendMessage
+                            )
+                        }
+
                         state.isConnecting -> {
+                            Log.e("SEMPAK", "isConnecting")
                             Column(
-                                modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 CircularProgressIndicator()
-                                Text(text = "Connectiong...")
+                                Text(text = "Connecting...")
                             }
                         }
+
                         else -> {
                             DeviceScreen(
                                 state = state,
@@ -112,7 +136,6 @@ class MainActivity : ComponentActivity() {
                                 onDeviceClick = viewModel::connectToDevice,
                                 onStartServer = viewModel::waitForIncomingConnections
                             )
-
                         }
                     }
                 }
